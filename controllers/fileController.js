@@ -39,7 +39,7 @@ const uploadFile = async (req, res) => {
             }
         });
 
-        res.redirect('/dashboard');
+        res.redirect('/files/dashboard');
     } catch (error) {
         console.error('Error uploading file:', error);
         res.status(500).render('error', { error: 'Error uploading file' });
@@ -89,7 +89,7 @@ const deleteFile = async (req, res) => {
             }
         });
 
-        res.redirect('/dashboard');
+        res.redirect('/files/dashboard');
     } catch (error) {
         console.error('Error deleting file:', error);
         res.status(500).render('error', { error: 'Error deleting file' });
