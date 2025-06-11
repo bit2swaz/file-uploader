@@ -106,8 +106,13 @@ passport.deserializeUser(async (id, done) => {
 const authRouter = require('./routes/auth');
 const fileRouter = require('./routes/fileRoutes');
 
+// Root route - redirect based on authentication
 app.get('/', (req, res) => {
-    res.redirect('/auth/login');
+    if (req.isAuthenticated()) {
+        res.redirect('/files/dashboard');
+    } else {
+        res.redirect('/auth/login');
+    }
 });
 
 app.use('/auth', authRouter);

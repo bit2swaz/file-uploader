@@ -40,7 +40,7 @@ const register = async (req, res) => {
           name
         });
       }
-      res.redirect('/');
+      res.redirect('/files/dashboard');
     });
   } catch (error) {
     res.render('auth/register', {
@@ -56,7 +56,7 @@ const login = (req, res) => {
 };
 
 const loginPost = (req, res) => {
-  res.redirect('/');
+  res.redirect('/files/dashboard');
 };
 
 const logout = (req, res) => {
