@@ -91,35 +91,44 @@ exports.uploadFile = async (req, res) => {
         
         console.log('File saved to temp location, size:', fileBuffer.length);
 
-        // Upload to Supabase
-        const { path: storagePath, url } = await uploadToSupabase(
+        // Upload to Supabase (with fallback to local storage)
+        const result = await uploadToSupabase(
             fileBuffer,
             file.name,
             file.mimetype,
             req.user.id
         );
         
-        console.log('Supabase upload complete');
-        console.log('Storage path:', storagePath);
-        console.log('URL:', url);
-
+        console.log('Upload result:', result);
+        
         // Clean up temp file
         fs.unlinkSync(tempFilePath);
 
         // Create file record in database
-        const fileRecord = await prisma.file.create({
-            data: {
-                filename: file.name,
-                storagePath: storagePath,
-                url: url,
-                size: file.size,
-                mimetype: file.mimetype,
-                userId: req.user.id,
-                folderId: folderId || null
-            }
-        });
+        const fileData = {
+            filename: file.name,
+            size: file.size,
+            mimetype: file.mimetype,
+            userId: req.user.id,
+            folderId: folderId || null
+        };
         
-        console.log('File record created in database');
+        // Add storage details based on result type (cloud or local)
+        if (result.path) {
+            fileData.storagePath = result.path;
+        }
+        
+        if (result.url) {
+            fileData.url = result.url;
+        }
+        
+        if (result.localPath) {
+            fileData.path = result.localPath;
+        }
+        
+        const fileRecord = await prisma.file.create({ data: fileData });
+        
+        console.log('File record created in database with ID:', fileRecord.id);
 
         res.redirect('/files/dashboard');
     } catch (error) {
@@ -147,11 +156,13 @@ exports.downloadFile = async (req, res) => {
         
         // If we have a Supabase URL, redirect to it
         if (file.url) {
+            console.log('Redirecting to Supabase URL:', file.url);
             return res.redirect(file.url);
         } 
         
         // Fallback to local file if URL not available
         if (file.path && fs.existsSync(file.path)) {
+            console.log('Serving local file:', file.path);
             return res.download(file.path, file.filename);
         }
         
@@ -178,18 +189,26 @@ exports.deleteFile = async (req, res) => {
 
         // Delete from Supabase if storagePath exists
         if (file.storagePath) {
-            await deleteFromSupabase(file.storagePath);
+            try {
+                await deleteFromSupabase(file.storagePath);
+                console.log('File deleted from Supabase:', file.storagePath);
+            } catch (error) {
+                console.error('Error deleting from Supabase, continuing anyway:', error);
+            }
         }
 
         // Delete local file if path exists
         if (file.path && fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
+            console.log('Local file deleted:', file.path);
         }
 
         // Delete file record from database
         await prisma.file.delete({
             where: { id: file.id }
         });
+        
+        console.log('File record deleted from database:', file.id);
 
         res.redirect('/files/dashboard');
     } catch (error) {
