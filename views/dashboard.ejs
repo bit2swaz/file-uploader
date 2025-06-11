@@ -28,7 +28,7 @@
         <div class="container">
             <a class="navbar-brand" href="#">File Uploader</a>
             <div class="navbar-text text-light me-3">
-                Welcome, <%= user.name %>
+                Welcome, <%= user.name || user.email %>
             </div>
             <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
         </div>
@@ -40,7 +40,7 @@
         <% } %>
 
         <div class="row mb-4">
-            <div class="col">
+            <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Upload New File</h5>
@@ -63,29 +63,28 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Create Folder</h5>
+                        <form action="/files/folders" method="POST">
+                            <div class="mb-3">
+                                <label for="folderName" class="form-label">Folder Name</label>
+                                <input type="text" class="form-control" id="folderName" name="name" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Folder</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <h2>Your Files</h2>
         
-        <% if (files.length === 0) { %>
-            <p>No files uploaded yet.</p>
-        <% } else { %>
-            <% 
-            // Group files by folder
-            const filesByFolder = files.reduce((acc, file) => {
-                const folderId = file.folderId || 'no-folder';
-                if (!acc[folderId]) {
-                    acc[folderId] = {
-                        name: file.folder ? file.folder.name : 'No Folder',
-                        files: []
-                    };
-                }
-                acc[folderId].files.push(file);
-                return acc;
-            }, {});
-            %>
-
-            <% Object.entries(filesByFolder).forEach(([folderId, folder]) => { %>
+        <% let hasFiles = false; %>
+        <% folders.forEach(folder => { %>
+            <% if (folder.files && folder.files.length > 0) { %>
+                <% hasFiles = true; %>
                 <div class="folder-section">
                     <div class="folder-header">
                         <h3><%= folder.name %></h3>
@@ -113,7 +112,11 @@
                         <% }); %>
                     </div>
                 </div>
-            <% }); %>
+            <% } %>
+        <% }); %>
+        
+        <% if (!hasFiles) { %>
+            <p>No files uploaded yet.</p>
         <% } %>
     </div>
 
