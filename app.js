@@ -4,7 +4,11 @@ const pgSession = require('connect-pg-simple')(session);
 const passport = require('passport');
 const path = require('path');
 const multer = require('multer');
+const flash = require('connect-flash');
 require('dotenv').config();
+
+// Import passport config
+require('./config/passport');
 
 const app = express();
 
@@ -32,9 +36,20 @@ app.use(session({
   }
 }));
 
+// Flash messages
+app.use(flash());
+
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Global variables middleware
+app.use((req, res, next) => {
+  res.locals.user = req.user;
+  res.locals.error = req.flash('error');
+  res.locals.success = req.flash('success');
+  next();
+});
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -52,7 +67,10 @@ app.locals.upload = upload;
 
 // Routes
 const indexRouter = require('./routes/index');
+const authRouter = require('./routes/auth');
+
 app.use('/', indexRouter);
+app.use('/auth', authRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
