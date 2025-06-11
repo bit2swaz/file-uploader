@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { isAuthenticated } = require('../middleware/auth');
+const { isAuthenticated } = require('../middlewares/auth');
 const fileController = require('../controllers/fileController');
 const folderController = require('../controllers/folderController');
 

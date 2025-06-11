@@ -3,17 +3,14 @@ const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const passport = require('passport');
 const path = require('path');
-const multer = require('multer');
 const flash = require('connect-flash');
 const fs = require('fs');
+const { Pool } = require('pg');
 const { PrismaClient } = require('@prisma/client');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const fileUpload = require('express-fileupload');
 require('dotenv').config();
-
-// Import passport config
-require('./config/passport');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -23,6 +20,11 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
 }
+
+// Create a PostgreSQL pool
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
+});
 
 // Middleware
 app.use(express.json());
@@ -39,15 +41,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Session configuration
 app.use(session({
     store: new pgSession({
-        tableName: 'Session',
-        createTableIfMissing: true,
-        conString: process.env.DATABASE_URL,
-        schemaName: 'public',
-        columnNames: {
-            sid: 'sid',
-            sess: 'data',
-            expire: 'expiresAt'
-        }
+        pool: pool,
+        tableName: 'session',
+        createTableIfMissing: true
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
@@ -106,33 +102,16 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage: storage });
-app.locals.upload = upload;
-
 // Routes
-const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
-const fileRouter = require('./routes/files');
+const fileRouter = require('./routes/fileRoutes');
 
-app.use('/', indexRouter);
-app.use('/auth', authRouter);
-app.use('/files', fileRouter);
-
-// Home route
 app.get('/', (req, res) => {
     res.redirect('/auth/login');
 });
+
+app.use('/auth', authRouter);
+app.use('/files', fileRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
