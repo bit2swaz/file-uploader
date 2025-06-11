@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const path = require('path');
 const fs = require('fs');
+const { uploadFile: uploadToSupabase, deleteFile: deleteFromSupabase } = require('../config/supabase');
 const prisma = new PrismaClient();
 
 // Get all files for a user
@@ -68,24 +69,21 @@ exports.uploadFile = async (req, res) => {
             }
         }
 
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename
-        const uniqueFilename = `${Date.now()}-${file.name}`;
-        const uploadPath = path.join(uploadsDir, uniqueFilename);
-
-        // Move the file
-        await file.mv(uploadPath);
+        // Upload to Supabase
+        const fileBuffer = Buffer.from(await file.data);
+        const { path: storagePath, url } = await uploadToSupabase(
+            fileBuffer,
+            file.name,
+            file.mimetype,
+            req.user.id
+        );
 
         // Create file record in database
         const fileRecord = await prisma.file.create({
             data: {
                 filename: file.name,
-                path: uploadPath,
+                storagePath: storagePath,
+                url: url,
                 size: file.size,
                 mimetype: file.mimetype,
                 userId: req.user.id,
@@ -96,7 +94,7 @@ exports.uploadFile = async (req, res) => {
         res.redirect('/files/dashboard');
     } catch (error) {
         console.error('Error uploading file:', error);
-        res.status(500).render('error', { error: 'Error uploading file' });
+        res.status(500).render('error', { error: 'Error uploading file: ' + error.message });
     }
 };
 
@@ -117,13 +115,17 @@ exports.downloadFile = async (req, res) => {
         // Log download attempt
         console.log(`User ${req.user.id} is downloading file ${file.id}: ${file.filename}`);
         
-        // Check if file exists on disk
-        if (!fs.existsSync(file.path)) {
-            console.error(`File not found on disk: ${file.path}`);
-            return res.status(404).render('error', { error: 'File not found on disk' });
+        // If we have a Supabase URL, redirect to it
+        if (file.url) {
+            return res.redirect(file.url);
+        } 
+        
+        // Fallback to local file if URL not available
+        if (file.path && fs.existsSync(file.path)) {
+            return res.download(file.path, file.filename);
         }
         
-        res.download(file.path, file.filename);
+        return res.status(404).render('error', { error: 'File content not available' });
     } catch (error) {
         console.error('Error downloading file:', error);
         res.status(500).render('error', { error: 'Error downloading file' });
@@ -144,8 +146,13 @@ exports.deleteFile = async (req, res) => {
             return res.status(404).render('error', { error: 'File not found' });
         }
 
-        // Delete file from filesystem
-        if (fs.existsSync(file.path)) {
+        // Delete from Supabase if storagePath exists
+        if (file.storagePath) {
+            await deleteFromSupabase(file.storagePath);
+        }
+
+        // Delete local file if path exists
+        if (file.path && fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
         }
 

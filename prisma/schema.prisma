@@ -25,17 +25,19 @@ model User {
 }
 
 model File {
-  id        String   @id @default(uuid())
-  filename  String
-  path      String
-  size      Int
-  mimetype  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  folderId  String?
-  folder    Folder?  @relation(fields: [folderId], references: [id])
+  id          String   @id @default(uuid())
+  filename    String
+  path        String?  // Local path (keeping for backward compatibility)
+  storagePath String?  // Path in Supabase storage
+  url         String?  // Public URL for the file
+  size        Int
+  mimetype    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  folderId    String?
+  folder      Folder?  @relation(fields: [folderId], references: [id])
 }
 
 model Folder {

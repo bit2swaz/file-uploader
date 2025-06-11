@@ -48,7 +48,7 @@
                     </div>
                     <h2 class="mb-4">Error</h2>
                     <div class="alert alert-danger">
-                        <%= error || 'Something went wrong!' %>
+                        <%= typeof error === 'string' ? error : (error && error.message ? error.message : 'Something went wrong!') %>
                     </div>
                     <p class="mt-4">
                         <a href="/files/dashboard" class="btn btn-primary">Return to Dashboard</a>
