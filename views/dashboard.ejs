@@ -3,63 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - File Uploader</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>File Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .file-card {
+            margin-bottom: 1rem;
+        }
+        .folder-section {
+            margin-bottom: 2rem;
+        }
+        .folder-header {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <nav class="navbar">
-            <div class="nav-brand">File Uploader</div>
-            <div class="nav-user">
-                Welcome, <%= user.name || user.email %>
-                <a href="/auth/logout" class="btn btn-logout">Logout</a>
-            </div>
-        </nav>
+    <div class="container mt-4">
+        <h1>File Dashboard</h1>
+        
+        <% if (locals.error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+        <% } %>
 
-        <div class="content">
-            <div class="upload-section">
-                <h2>Upload File</h2>
-                <form action="/files/upload" method="POST" enctype="multipart/form-data" class="upload-form">
-                    <div class="form-group">
-                        <label for="file">Choose File</label>
-                        <input type="file" id="file" name="file" required>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Upload File</h5>
+                        <form action="/files/upload" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="file" class="form-label">Select File</label>
+                                <input type="file" class="form-control" id="file" name="file" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="folderId" class="form-label">Select Folder</label>
+                                <select class="form-select" id="folderId" name="folderId">
+                                    <option value="">No Folder</option>
+                                    <% folders.forEach(folder => { %>
+                                        <option value="<%= folder.id %>"><%= folder.name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </form>
                     </div>
-                    <button type="submit" class="btn btn-primary">Upload</button>
-                </form>
+                </div>
             </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Create Folder</h5>
+                        <form action="/files/folders" method="POST">
+                            <div class="mb-3">
+                                <label for="folderName" class="form-label">Folder Name</label>
+                                <input type="text" class="form-control" id="folderName" name="name" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Create Folder</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="files-section">
-                <h2>Your Files</h2>
-                <% if (files && files.length > 0) { %>
-                    <div class="files-grid">
-                        <% files.forEach(file => { %>
-                            <div class="file-card">
-                                <div class="file-icon">
-                                    <svg viewBox="0 0 24 24" width="48" height="48">
-                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                                    </svg>
-                                </div>
-                                <div class="file-info">
-                                    <h3><%= file.filename %></h3>
-                                    <p class="file-meta">
-                                        Size: <%= (file.size / 1024).toFixed(2) %> KB<br>
-                                        Uploaded: <%= new Date(file.createdAt).toLocaleString() %>
-                                    </p>
-                                    <div class="file-actions">
-                                        <a href="/files/download/<%= file.id %>" class="btn btn-download">Download</a>
-                                        <form action="/files/delete/<%= file.id %>" method="POST" class="delete-form">
-                                            <button type="submit" class="btn btn-delete">Delete</button>
-                                        </form>
+        <h2>Your Files</h2>
+        
+        <% if (files.length === 0) { %>
+            <p>No files uploaded yet.</p>
+        <% } else { %>
+            <% 
+            // Group files by folder
+            const filesByFolder = files.reduce((acc, file) => {
+                const folderId = file.folderId || 'no-folder';
+                if (!acc[folderId]) {
+                    acc[folderId] = {
+                        name: file.folder ? file.folder.name : 'No Folder',
+                        files: []
+                    };
+                }
+                acc[folderId].files.push(file);
+                return acc;
+            }, {});
+            %>
+
+            <% Object.entries(filesByFolder).forEach(([folderId, folder]) => { %>
+                <div class="folder-section">
+                    <div class="folder-header">
+                        <h3><%= folder.name %></h3>
+                    </div>
+                    <div class="row">
+                        <% folder.files.forEach(file => { %>
+                            <div class="col-md-4">
+                                <div class="card file-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><%= file.filename %></h5>
+                                        <p class="card-text">
+                                            Size: <%= (file.size / 1024).toFixed(2) %> KB<br>
+                                            Type: <%= file.mimetype %>
+                                        </p>
+                                        <div class="btn-group">
+                                            <a href="/files/download/<%= file.id %>" class="btn btn-primary">Download</a>
+                                            <form action="/files/delete/<%= file.id %>" method="POST" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this file?')">Delete</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         <% }); %>
                     </div>
-                <% } else { %>
-                    <p class="no-files">No files uploaded yet.</p>
-                <% } %>
-            </div>
-        </div>
+                </div>
+            <% }); %>
+        <% } %>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

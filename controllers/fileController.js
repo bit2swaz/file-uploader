@@ -9,11 +9,24 @@ const getFiles = async (req, res) => {
             where: {
                 userId: req.user.id
             },
+            include: {
+                folder: true
+            },
             orderBy: {
                 createdAt: 'desc'
             }
         });
-        res.render('dashboard', { files });
+
+        const folders = await prisma.folder.findMany({
+            where: {
+                userId: req.user.id
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+
+        res.render('dashboard', { files, folders });
     } catch (error) {
         console.error('Error fetching files:', error);
         res.status(500).render('error', { error: 'Error fetching files' });
@@ -25,7 +38,14 @@ const uploadFile = async (req, res) => {
         if (!req.file) {
             return res.status(400).render('dashboard', {
                 error: 'No file uploaded',
-                files: await prisma.file.findMany({ where: { userId: req.user.id } })
+                files: await prisma.file.findMany({ 
+                    where: { userId: req.user.id },
+                    include: { folder: true }
+                }),
+                folders: await prisma.folder.findMany({
+                    where: { userId: req.user.id },
+                    orderBy: { name: 'asc' }
+                })
             });
         }
 
@@ -35,7 +55,11 @@ const uploadFile = async (req, res) => {
                 path: req.file.path,
                 size: req.file.size,
                 mimetype: req.file.mimetype,
-                userId: req.user.id
+                userId: req.user.id,
+                folderId: req.body.folderId || null
+            },
+            include: {
+                folder: true
             }
         });
 

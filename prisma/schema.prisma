@@ -21,6 +21,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   files     File[]
+  folders   Folder[]
 }
 
 model File {
@@ -31,6 +32,20 @@ model File {
   mimetype  String
   userId    String
   user      User     @relation(fields: [userId], references: [id])
+  folderId  String?
+  folder    Folder?  @relation(fields: [folderId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  files     File[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, userId])
 }
