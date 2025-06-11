@@ -1,142 +1,151 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-const passport = require('passport');
-const path = require('path');
 const flash = require('connect-flash');
-const fs = require('fs');
-const { Pool } = require('pg');
+const passport = require('passport');
 const { PrismaClient } = require('@prisma/client');
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
+const path = require('path');
 const fileUpload = require('express-fileupload');
-require('dotenv').config();
+const PgSession = require('connect-pg-simple')(session);
+const { Pool } = require('pg');
 
+// Import routes
+const authRoutes = require('./routes/auth');
+const fileRoutes = require('./routes/files');
+const folderRoutes = require('./routes/folders');
+const sharedRoutes = require('./routes/shared');
+
+// Import middleware
+const { isAuthenticated } = require('./middlewares/auth');
+
+// Create Express app
 const app = express();
-const prisma = new PrismaClient();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+// Log environment for debugging
+console.log('Environment:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
+// Initialize Prisma Client
+let prisma;
+try {
+  prisma = new PrismaClient();
+  console.log('Prisma client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Prisma client:', error);
+  console.log('Continuing without database connection...');
 }
 
-// Create a PostgreSQL pool
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
-});
+// Configure session store
+let sessionOptions;
+if (process.env.DATABASE_URL) {
+  try {
+    const pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+    
+    // Test the database connection
+    pgPool.query('SELECT NOW()', (err, res) => {
+      if (err) {
+        console.error('Database connection error:', err);
+      } else {
+        console.log('Database connection successful:', res.rows[0]);
+      }
+    });
+    
+    sessionOptions = {
+      store: new PgSession({
+        pool: pgPool,
+        tableName: 'session',
+        createTableIfMissing: true
+      }),
+      secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      }
+    };
+  } catch (error) {
+    console.error('Error setting up PostgreSQL session store:', error);
+    // Fall back to memory session store
+    sessionOptions = {
+      secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+      resave: false,
+      saveUninitialized: false
+    };
+  }
+} else {
+  console.warn('DATABASE_URL not found, using memory session store');
+  sessionOptions = {
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+    resave: false,
+    saveUninitialized: false
+  };
+}
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Configure express-fileupload
-app.use(fileUpload({
-    useTempFiles: true,
-    tempFileDir: '/tmp/',
-    createParentPath: true,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
-    abortOnLimit: true
-}));
-
-// View engine setup
+// Set up EJS view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Static files
+// Middleware
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Session configuration
-app.use(session({
-    store: new pgSession({
-        pool: pool,
-        tableName: 'session',
-        createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: path.join(__dirname, 'uploads', 'temp')
 }));
-
-// Flash messages
-app.use(flash());
-
-// Passport middleware
+app.use(session(sessionOptions));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(flash());
 
-// Global variables middleware
+// Middleware to make user available to views
 app.use((req, res, next) => {
-    res.locals.user = req.user;
-    res.locals.error = req.flash('error');
-    res.locals.success = req.flash('success');
-    next();
-});
-
-// Passport configuration
-passport.use(new LocalStrategy(
-    { usernameField: 'email' },
-    async (email, password, done) => {
-        try {
-            const user = await prisma.user.findUnique({ where: { email } });
-            if (!user) {
-                return done(null, false, { message: 'Incorrect email.' });
-            }
-            const isValid = await bcrypt.compare(password, user.password);
-            if (!isValid) {
-                return done(null, false, { message: 'Incorrect password.' });
-            }
-            return done(null, user);
-        } catch (error) {
-            return done(error);
-        }
-    }
-));
-
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await prisma.user.findUnique({ where: { id } });
-        done(null, user);
-    } catch (error) {
-        done(error);
-    }
+  res.locals.user = req.user;
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  next();
 });
 
 // Routes
-const authRouter = require('./routes/auth');
-const fileRouter = require('./routes/fileRoutes');
-const shareRouter = require('./routes/shareRoutes');
-
-// Root route - redirect based on authentication
 app.get('/', (req, res) => {
-    if (req.isAuthenticated()) {
-        res.redirect('/files/dashboard');
-    } else {
-        res.redirect('/auth/login');
-    }
+  if (req.isAuthenticated()) {
+    return res.redirect('/files/dashboard');
+  }
+  res.render('index');
 });
 
-app.use('/auth', authRouter);
-app.use('/files', fileRouter);
-app.use('/share', shareRouter);
+app.use('/auth', authRoutes);
+app.use('/files', isAuthenticated, fileRoutes);
+app.use('/folders', isAuthenticated, folderRoutes);
+app.use('/shared', sharedRoutes);
 
-// Error handling middleware
+// Error handling
+app.use((req, res, next) => {
+  res.status(404).render('error', {
+    title: '404 - Page Not Found',
+    message: 'The page you are looking for does not exist.'
+  });
+});
+
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).render('error', { error: 'Something went wrong!' });
+  console.error('Error:', err);
+  res.status(500).render('error', {
+    title: '500 - Server Error',
+    message: 'Something went wrong on our end.',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = app; 
+// Export Prisma client for use in other modules
+module.exports = { prisma }; 
