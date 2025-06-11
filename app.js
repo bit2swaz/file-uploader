@@ -40,7 +40,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     store: new pgSession({
         tableName: 'Session',
-        createTableIfMissing: true
+        createTableIfMissing: true,
+        conString: process.env.DATABASE_URL,
+        schemaName: 'public',
+        columnNames: {
+            sid: 'sid',
+            sess: 'data',
+            expire: 'expiresAt'
+        }
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,

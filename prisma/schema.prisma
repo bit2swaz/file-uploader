@@ -51,8 +51,7 @@ model Folder {
 }
 
 model Session {
-  id        String   @id
-  sid       String   @unique
+  sid       String   @id
   data      String
   expiresAt DateTime
   createdAt DateTime @default(now())
