@@ -30,22 +30,22 @@ model File {
   path      String
   size      Int
   mimetype  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   folderId  String?
   folder    Folder?  @relation(fields: [folderId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Folder {
   id        String   @id @default(uuid())
   name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   files     File[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@unique([name, userId])
 }
