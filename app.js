@@ -113,6 +113,7 @@ passport.deserializeUser(async (id, done) => {
 // Routes
 const authRouter = require('./routes/auth');
 const fileRouter = require('./routes/fileRoutes');
+const shareRouter = require('./routes/shareRoutes');
 
 // Root route - redirect based on authentication
 app.get('/', (req, res) => {
@@ -125,6 +126,7 @@ app.get('/', (req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/files', fileRouter);
+app.use('/share', shareRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
