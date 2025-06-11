@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'File Uploader' %></title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a class="navbar-brand" href="<%= locals.user ? '/files/dashboard' : '/' %>">File Uploader</a>
+            <% if (locals.user) { %>
+                <div class="navbar-nav">
+                    <div class="navbar-text me-3">
+                        Welcome, <%= user.name || user.email %>
+                    </div>
+                    <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+                </div>
+            <% } %>
+        </div>
+    </nav>
+    
+    <div class="content-container">
+        <div class="container fade-in">
+            <% if (locals.error) { %>
+                <div class="alert alert-danger"><%= error %></div>
+            <% } %>
+            <% if (locals.success) { %>
+                <div class="alert alert-success"><%= success %></div>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html> 

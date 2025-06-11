@@ -1,136 +1,104 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .file-card {
-            margin-bottom: 1rem;
-        }
-        .folder-section {
-            margin-bottom: 2rem;
-        }
-        .folder-header {
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 0.25rem;
-            margin-bottom: 1rem;
-        }
-        .navbar {
-            margin-bottom: 2rem;
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">File Uploader</a>
-            <div class="navbar-text text-light me-3">
-                Welcome, <%= user.name || user.email %>
-            </div>
-            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
-        </div>
-    </nav>
+<%- include('partials/header', { title: 'File Dashboard' }) %>
 
-    <div class="container">
-        <% if (locals.error) { %>
-            <div class="alert alert-danger"><%= error %></div>
-        <% } %>
+<h2>Your Files</h2>
 
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Upload New File</h5>
-                        <form action="/files/upload" method="POST" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="folder" class="form-label">Select Folder</label>
-                                <select class="form-select" id="folder" name="folderId" required>
-                                    <option value="">Choose a folder...</option>
-                                    <% folders.forEach(folder => { %>
-                                        <option value="<%= folder.id %>"><%= folder.name %></option>
-                                    <% }); %>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="file" class="form-label">Choose File</label>
-                                <input type="file" class="form-control" id="file" name="file" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Upload</button>
-                        </form>
-                    </div>
-                </div>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card card-hover-effect">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Upload New File</h5>
             </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Create Folder</h5>
-                        <form action="/files/folders" method="POST">
-                            <div class="mb-3">
-                                <label for="folderName" class="form-label">Folder Name</label>
-                                <input type="text" class="form-control" id="folderName" name="name" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Create Folder</button>
-                        </form>
+            <div class="card-body">
+                <form action="/files/upload" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="folder" class="form-label">Select Folder</label>
+                        <select class="form-select" id="folder" name="folderId" required>
+                            <option value="">Choose a folder...</option>
+                            <% folders.forEach(folder => { %>
+                                <option value="<%= folder.id %>"><%= folder.name %></option>
+                            <% }); %>
+                        </select>
                     </div>
-                </div>
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Choose File</label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
             </div>
         </div>
-
-        <h2>Your Files</h2>
-        
-        <% let hasFiles = false; %>
-        <% folders.forEach(folder => { %>
-            <% if (folder.files && folder.files.length > 0) { %>
-                <% hasFiles = true; %>
-                <div class="folder-section">
-                    <div class="folder-header d-flex justify-content-between align-items-center">
-                        <h3><%= folder.name %></h3>
-                        <a href="/share/folder/<%= folder.id %>" class="btn btn-success btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share me-1" viewBox="0 0 16 16">
-                                <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
-                            </svg>
-                            Share Folder
-                        </a>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-hover-effect">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Create Folder</h5>
+            </div>
+            <div class="card-body">
+                <form action="/files/folders" method="POST">
+                    <div class="mb-3">
+                        <label for="folderName" class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" id="folderName" name="name" required>
                     </div>
-                    <div class="row">
-                        <% folder.files.forEach(file => { %>
-                            <div class="col-md-4">
-                                <div class="card file-card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">
-                                            <a href="/files/detail/<%= file.id %>" class="text-decoration-none">
-                                                <%= file.filename %>
-                                            </a>
-                                        </h5>
-                                        <p class="card-text">
-                                            Size: <%= (file.size / 1024).toFixed(2) %> KB<br>
-                                            Type: <%= file.mimetype %><br>
-                                            Uploaded: <%= new Date(file.createdAt).toLocaleString() %>
-                                        </p>
-                                        <div class="btn-group">
-                                            <a href="/files/detail/<%= file.id %>" class="btn btn-secondary btn-sm">Details</a>
-                                            <a href="/files/download/<%= file.id %>" class="btn btn-primary btn-sm">Download</a>
-                                            <form action="/files/delete/<%= file.id %>" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this file?')">Delete</button>
-                                            </form>
-                                        </div>
-                                    </div>
+                    <button type="submit" class="btn btn-primary">Create Folder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<% let hasFiles = false; %>
+<% folders.forEach(folder => { %>
+    <% if (folder.files && folder.files.length > 0) { %>
+        <% hasFiles = true; %>
+        <div class="folder-section fade-in">
+            <div class="folder-header d-flex justify-content-between align-items-center">
+                <h3><%= folder.name %></h3>
+                <a href="/share/folder/<%= folder.id %>" class="btn btn-success btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share me-1" viewBox="0 0 16 16">
+                        <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
+                    </svg>
+                    Share Folder
+                </a>
+            </div>
+            <div class="row">
+                <% folder.files.forEach(file => { %>
+                    <div class="col-md-4">
+                        <div class="card file-card card-hover-effect">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <a href="/files/detail/<%= file.id %>" class="text-decoration-none">
+                                        <%= file.filename %>
+                                    </a>
+                                </h5>
+                                <p class="card-text">
+                                    Size: <%= (file.size / 1024).toFixed(2) %> KB<br>
+                                    Type: <%= file.mimetype %><br>
+                                    Uploaded: <%= new Date(file.createdAt).toLocaleString() %>
+                                </p>
+                                <div class="btn-group">
+                                    <a href="/files/detail/<%= file.id %>" class="btn btn-secondary btn-sm">Details</a>
+                                    <a href="/files/download/<%= file.id %>" class="btn btn-primary btn-sm">Download</a>
+                                    <form action="/files/delete/<%= file.id %>" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this file?')">Delete</button>
+                                    </form>
                                 </div>
                             </div>
-                        <% }); %>
+                        </div>
                     </div>
-                </div>
-            <% } %>
-        <% }); %>
-        
-        <% if (!hasFiles) { %>
-            <p>No files uploaded yet.</p>
-        <% } %>
-    </div>
+                <% }); %>
+            </div>
+        </div>
+    <% } %>
+<% }); %>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html> 
+<% if (folders.length === 0) { %>
+    <div class="alert alert-info">
+        <p>You haven't created any folders yet. Create a folder to start uploading files.</p>
+    </div>
+<% } else if (!hasFiles) { %>
+    <div class="alert alert-info">
+        <p>No files uploaded yet. Select a folder and upload your first file.</p>
+    </div>
+<% } %>
+
+<%- include('partials/footer') %> 

@@ -1,55 +1,85 @@
 # File Uploader
 
-A file upload and management application with folder organization and cloud storage.
+A modern, secure file management system with cloud storage integration and shareable links.
+
+## Tech Stack
+
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Passport.js with session-based auth
+- **Storage**: Hybrid approach - Supabase Cloud Storage with local fallback
+- **Frontend**: EJS templates, custom CSS, vanilla JavaScript
 
 ## Features
 
-- User authentication with Passport.js
-- File upload to Supabase cloud storage
-- File organization with folders
-- Secure file downloading
-- File details view
+- **User Authentication**
+  - Secure login/register with password hashing
+  - Session-based authentication using PostgreSQL session store
 
-## Setup
+- **File Management**
+  - Create and organize folders
+  - Upload files to specific folders
+  - View detailed file information
+  - Secure file downloads
 
-1. Install dependencies:
+- **Cloud Storage Integration**
+  - Primary storage on Supabase Cloud
+  - Automatic fallback to local storage when cloud is unavailable
+  - Seamless download experience regardless of storage location
+
+- **Folder Sharing**
+  - Generate secure, time-limited share links for folders
+  - JWT-based authentication for shared links
+  - Configurable expiration periods (1 hour to 30 days)
+  - Read-only access for shared content
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js (v14 or newer)
+- PostgreSQL database
+- Supabase account (for cloud storage)
+
+### Local Development
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/bit2swaz/file-uploader.git
+   cd file-uploader
    ```
+
+2. **Install dependencies**
+   ```bash
    npm install
    ```
 
-2. Create a `.env` file with the following variables:
-   ```
-   DATABASE_URL="postgresql://username:password@localhost:5432/file_uploader?schema=public"
-   SESSION_SECRET="your-super-secret-key"
-   PORT=3000
-   SUPABASE_URL="https://your-supabase-project-url.supabase.co"
-   SUPABASE_KEY="your-supabase-anon-key"
-   SUPABASE_BUCKET="file-uploader-bucket"
-   ```
+3. **Set up environment variables**
+   - Create a `.env` file in the project root
+   - Use the `.env.example` as a template
+   - Fill in your database and Supabase credentials
 
-3. Set up the PostgreSQL database:
-   ```
+4. **Set up the database**
+   ```bash
    npx prisma migrate dev
    ```
 
-4. Set up Supabase:
-   - Create a Supabase account at [supabase.com](https://supabase.com)
-   - Create a new project
-   - Create a storage bucket named `file-uploader-bucket` with public access
-   - Copy your Supabase URL and anon key to the `.env` file
-
-5. Start the application:
-   ```
+5. **Start the development server**
+   ```bash
    npm run dev
    ```
 
-## Migrating Existing Files
+6. **Access the application**
+   - Open your browser and go to `http://localhost:3000`
 
-If you need to migrate existing files from local storage to Supabase:
+## Deployment
 
-```
-node scripts/migrate-to-supabase.js
-```
+The application is deployed at: [https://your-app.railway.app](https://your-app.railway.app)
+
+For production deployment:
+1. Ensure all environment variables are properly set
+2. Configure database connection strings for production
+3. Set `NODE_ENV=production`
 
 ## License
 
