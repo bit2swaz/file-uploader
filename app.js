@@ -6,12 +6,17 @@ const path = require('path');
 const multer = require('multer');
 const flash = require('connect-flash');
 const fs = require('fs');
+const { PrismaClient } = require('@prisma/client');
+const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcrypt');
+const fileUpload = require('express-fileupload');
 require('dotenv').config();
 
 // Import passport config
 require('./config/passport');
 
 const app = express();
+const prisma = new PrismaClient();
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -22,6 +27,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(fileUpload());
 
 // View engine setup
 app.set('view engine', 'ejs');
@@ -33,13 +39,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Session configuration
 app.use(session({
     store: new pgSession({
-        conString: process.env.DATABASE_URL,
+        tableName: 'Session',
+        createTableIfMissing: true
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
@@ -56,6 +64,39 @@ app.use((req, res, next) => {
     res.locals.error = req.flash('error');
     res.locals.success = req.flash('success');
     next();
+});
+
+// Passport configuration
+passport.use(new LocalStrategy(
+    { usernameField: 'email' },
+    async (email, password, done) => {
+        try {
+            const user = await prisma.user.findUnique({ where: { email } });
+            if (!user) {
+                return done(null, false, { message: 'Incorrect email.' });
+            }
+            const isValid = await bcrypt.compare(password, user.password);
+            if (!isValid) {
+                return done(null, false, { message: 'Incorrect password.' });
+            }
+            return done(null, user);
+        } catch (error) {
+            return done(error);
+        }
+    }
+));
+
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id } });
+        done(null, user);
+    } catch (error) {
+        done(error);
+    }
 });
 
 // Multer configuration for file uploads
@@ -81,10 +122,15 @@ app.use('/', indexRouter);
 app.use('/auth', authRouter);
 app.use('/files', fileRouter);
 
+// Home route
+app.get('/', (req, res) => {
+    res.redirect('/auth/login');
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).render('error', { error: err });
+    res.status(500).render('error', { error: 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 3000;
