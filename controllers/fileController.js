@@ -1,71 +1,71 @@
 const { PrismaClient } = require('@prisma/client');
 const path = require('path');
-const fs = require('fs').promises;
+const fs = require('fs');
 const prisma = new PrismaClient();
 
-const getFiles = async (req, res) => {
+// Get all files for a user
+exports.getFiles = async (req, res) => {
     try {
-        const files = await prisma.file.findMany({
-            where: {
-                userId: req.user.id
-            },
-            include: {
-                folder: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-
         const folders = await prisma.folder.findMany({
-            where: {
-                userId: req.user.id
-            },
-            orderBy: {
-                name: 'asc'
+            where: { userId: req.user.id },
+            include: {
+                files: {
+                    orderBy: { createdAt: 'desc' }
+                }
             }
         });
-
-        res.render('dashboard', { files, folders });
+        res.render('dashboard', { folders });
     } catch (error) {
-        console.error('Error fetching files:', error);
-        res.status(500).render('error', { error: 'Error fetching files' });
+        console.error('Error getting files:', error);
+        res.status(500).render('error', { error: 'Error getting files' });
     }
 };
 
-const uploadFile = async (req, res) => {
+// Upload a new file
+exports.uploadFile = async (req, res) => {
     try {
         if (!req.files || !req.files.file) {
-            return res.status(400).render('dashboard', {
-                error: 'No file uploaded',
-                files: await prisma.file.findMany({
-                    where: { userId: req.user.id },
-                    include: { folder: true }
-                }),
-                folders: await prisma.folder.findMany({
-                    where: { userId: req.user.id },
-                    orderBy: { name: 'asc' }
-                })
-            });
+            return res.status(400).render('error', { error: 'No file uploaded' });
         }
 
         const file = req.files.file;
-        const uploadPath = path.join(__dirname, '..', 'uploads', file.name);
+        const folderId = req.body.folderId;
 
-        // Move the file to uploads directory
+        // Validate folder ownership
+        if (folderId) {
+            const folder = await prisma.folder.findFirst({
+                where: {
+                    id: folderId,
+                    userId: req.user.id
+                }
+            });
+            if (!folder) {
+                return res.status(403).render('error', { error: 'Invalid folder' });
+            }
+        }
+
+        // Create uploads directory if it doesn't exist
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Generate unique filename
+        const uniqueFilename = `${Date.now()}-${file.name}`;
+        const uploadPath = path.join(uploadsDir, uniqueFilename);
+
+        // Move the file
         await file.mv(uploadPath);
 
-        const newFile = await prisma.file.create({
+        // Create file record in database
+        const fileRecord = await prisma.file.create({
             data: {
                 filename: file.name,
                 path: uploadPath,
                 size: file.size,
                 mimetype: file.mimetype,
                 userId: req.user.id,
-                folderId: req.body.folderId || null
-            },
-            include: {
-                folder: true
+                folderId: folderId || null
             }
         });
 
@@ -76,9 +76,10 @@ const uploadFile = async (req, res) => {
     }
 };
 
-const downloadFile = async (req, res) => {
+// Download a file
+exports.downloadFile = async (req, res) => {
     try {
-        const file = await prisma.file.findUnique({
+        const file = await prisma.file.findFirst({
             where: {
                 id: req.params.id,
                 userId: req.user.id
@@ -96,9 +97,10 @@ const downloadFile = async (req, res) => {
     }
 };
 
-const deleteFile = async (req, res) => {
+// Delete a file
+exports.deleteFile = async (req, res) => {
     try {
-        const file = await prisma.file.findUnique({
+        const file = await prisma.file.findFirst({
             where: {
                 id: req.params.id,
                 userId: req.user.id
@@ -110,13 +112,13 @@ const deleteFile = async (req, res) => {
         }
 
         // Delete file from filesystem
-        await fs.unlink(file.path);
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
 
         // Delete file record from database
         await prisma.file.delete({
-            where: {
-                id: file.id
-            }
+            where: { id: file.id }
         });
 
         res.redirect('/files/dashboard');

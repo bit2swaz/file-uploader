@@ -29,7 +29,15 @@ const pool = new Pool({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(fileUpload());
+
+// Configure express-fileupload
+app.use(fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/',
+    createParentPath: true,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
+    abortOnLimit: true
+}));
 
 // View engine setup
 app.set('view engine', 'ejs');
