@@ -30,6 +30,7 @@ model File {
   path        String?  // Local path (keeping for backward compatibility)
   storagePath String?  // Path in Supabase storage
   url         String?  // Public URL for the file
+  isLocalFile Boolean  @default(false) // Flag to indicate if file is stored locally
   size        Int
   mimetype    String
   createdAt   DateTime @default(now())

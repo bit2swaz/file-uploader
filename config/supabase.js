@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -14,7 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * @param {string} fileName - The name of the file
  * @param {string} mimeType - The MIME type of the file
  * @param {string} userId - The user ID who owns the file
- * @returns {Promise<{path: string, url: string}>} - The path and public URL of the uploaded file
+ * @returns {Promise<{path: string, url: string, isLocal: boolean}>} - The path and public URL of the uploaded file
  */
 const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
     try {
@@ -29,22 +31,6 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
         
         console.log('Uploading file to path:', filePath);
         
-        // Make the bucket public if using for the first time
-        try {
-            await supabase.storage.getBucket(bucketName);
-        } catch (error) {
-            console.log('Bucket does not exist or is not accessible, trying to create it...');
-            try {
-                await supabase.storage.createBucket(bucketName, {
-                    public: true,
-                    fileSizeLimit: 50 * 1024 * 1024 // 50MB
-                });
-                console.log('Bucket created successfully');
-            } catch (bucketError) {
-                console.log('Failed to create bucket, it might already exist:', bucketError);
-            }
-        }
-        
         // Try to update the bucket to public
         try {
             await supabase.storage.updateBucket(bucketName, {
@@ -55,31 +41,18 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
             console.log('Could not update bucket, continuing anyway:', updateError);
         }
         
-        // Upload file to Supabase Storage
+        // Attempt to upload to Supabase Storage
         const { data, error } = await supabase.storage
             .from(bucketName)
             .upload(filePath, fileBuffer, {
                 contentType: mimeType,
                 cacheControl: '3600',
-                upsert: true // Changed to true to handle existing files
+                upsert: true
             });
 
         if (error) {
             console.error('Supabase upload error:', error);
-            
-            // If we hit RLS issues, let's just generate a presigned URL for now
-            // This is a workaround for Supabase RLS policies
-            const uploadPath = `${userId}/${timestamp}-${sanitizedFileName}`;
-            
-            // Construct a public URL manually
-            const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${uploadPath}`;
-            
-            console.log('Falling back to public URL construction:', publicUrl);
-            
-            return {
-                path: uploadPath,
-                url: publicUrl
-            };
+            throw new Error(`Failed to upload file to Supabase: ${error.message}`);
         }
 
         console.log('Upload successful, getting public URL...');
@@ -95,18 +68,26 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
 
         console.log('Public URL:', urlData.publicUrl);
         
+        // Test if the URL is actually accessible
+        try {
+            const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
+            if (!response.ok) {
+                console.error('URL is not accessible, status:', response.status);
+                throw new Error(`URL is not accessible: ${response.status} ${response.statusText}`);
+            }
+            console.log('URL is accessible, HTTP status:', response.status);
+        } catch (fetchError) {
+            console.error('Error testing URL accessibility:', fetchError);
+            throw new Error('URL verification failed');
+        }
+        
         return {
             path: filePath,
-            url: urlData.publicUrl
+            url: urlData.publicUrl,
+            isLocal: false
         };
     } catch (error) {
-        console.error('Error in uploadFile:', error);
-        
-        // Emergency fallback - just store the file locally
-        console.log('Emergency fallback: storing file locally');
-        
-        const fs = require('fs');
-        const path = require('path');
+        console.error('Error in uploadFile, falling back to local storage:', error);
         
         // Save file locally as a backup
         const localDir = path.join(__dirname, '..', 'uploads', userId);
@@ -116,16 +97,18 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
         
         const timestamp = Date.now();
         const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const localPath = path.join(localDir, `${timestamp}-${sanitizedFileName}`);
+        const localFileName = `${timestamp}-${sanitizedFileName}`;
+        const localPath = path.join(localDir, localFileName);
         
         fs.writeFileSync(localPath, fileBuffer);
+        console.log('File saved locally at:', localPath);
         
-        // Return local file info with a URL that will work with our download endpoint
+        // Return local file info - no URL since we'll serve it directly
         return {
             path: null,
-            storagePath: null,
+            url: null,
             localPath: localPath,
-            url: null
+            isLocal: true
         };
     }
 };

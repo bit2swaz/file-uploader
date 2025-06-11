@@ -110,7 +110,8 @@ exports.uploadFile = async (req, res) => {
             size: file.size,
             mimetype: file.mimetype,
             userId: req.user.id,
-            folderId: folderId || null
+            folderId: folderId || null,
+            isLocalFile: result.isLocal || false
         };
         
         // Add storage details based on result type (cloud or local)
@@ -154,22 +155,53 @@ exports.downloadFile = async (req, res) => {
         // Log download attempt
         console.log(`User ${req.user.id} is downloading file ${file.id}: ${file.filename}`);
         
-        // If we have a Supabase URL, redirect to it
-        if (file.url) {
-            console.log('Redirecting to Supabase URL:', file.url);
-            return res.redirect(file.url);
-        } 
+        // Check if it's a local file first
+        if (file.isLocalFile || !file.url) {
+            if (file.path && fs.existsSync(file.path)) {
+                console.log('Serving local file:', file.path);
+                return res.download(file.path, file.filename);
+            } else {
+                return res.status(404).render('error', { error: 'Local file not found' });
+            }
+        }
         
-        // Fallback to local file if URL not available
-        if (file.path && fs.existsSync(file.path)) {
-            console.log('Serving local file:', file.path);
-            return res.download(file.path, file.filename);
+        // If we have a Supabase URL, check if it's accessible before redirecting
+        if (file.url) {
+            try {
+                // Test if the URL is accessible
+                const response = await fetch(file.url, { method: 'HEAD' });
+                
+                if (response.ok) {
+                    console.log('Redirecting to Supabase URL:', file.url);
+                    return res.redirect(file.url);
+                } else {
+                    console.error('Supabase URL is not accessible:', response.status, response.statusText);
+                    
+                    // If we have a local backup, use that
+                    if (file.path && fs.existsSync(file.path)) {
+                        console.log('Falling back to local file:', file.path);
+                        return res.download(file.path, file.filename);
+                    }
+                    
+                    return res.status(404).render('error', { error: 'File not accessible in cloud storage' });
+                }
+            } catch (error) {
+                console.error('Error checking Supabase URL:', error);
+                
+                // If we have a local backup, use that
+                if (file.path && fs.existsSync(file.path)) {
+                    console.log('Falling back to local file after URL check error:', file.path);
+                    return res.download(file.path, file.filename);
+                }
+                
+                return res.status(500).render('error', { error: 'Error accessing file in cloud storage' });
+            }
         }
         
         return res.status(404).render('error', { error: 'File content not available' });
     } catch (error) {
         console.error('Error downloading file:', error);
-        res.status(500).render('error', { error: 'Error downloading file' });
+        res.status(500).render('error', { error: 'Error downloading file: ' + error.message });
     }
 };
 
