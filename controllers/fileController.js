@@ -56,6 +56,12 @@ exports.uploadFile = async (req, res) => {
         const file = req.files.file;
         const folderId = req.body.folderId;
 
+        console.log('File received:', {
+            name: file.name,
+            size: file.size,
+            mimetype: file.mimetype
+        });
+
         // Validate folder ownership
         if (folderId) {
             const folder = await prisma.folder.findFirst({
@@ -69,14 +75,36 @@ exports.uploadFile = async (req, res) => {
             }
         }
 
+        // Create a temporary local file first (workaround for express-fileupload)
+        const tempDir = path.join(__dirname, '..', 'uploads', 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        const tempFilePath = path.join(tempDir, `${Date.now()}-${file.name}`);
+        
+        // Move uploaded file to temp location
+        await file.mv(tempFilePath);
+        
+        // Read the file as a buffer
+        const fileBuffer = fs.readFileSync(tempFilePath);
+        
+        console.log('File saved to temp location, size:', fileBuffer.length);
+
         // Upload to Supabase
-        const fileBuffer = Buffer.from(await file.data);
         const { path: storagePath, url } = await uploadToSupabase(
             fileBuffer,
             file.name,
             file.mimetype,
             req.user.id
         );
+        
+        console.log('Supabase upload complete');
+        console.log('Storage path:', storagePath);
+        console.log('URL:', url);
+
+        // Clean up temp file
+        fs.unlinkSync(tempFilePath);
 
         // Create file record in database
         const fileRecord = await prisma.file.create({
@@ -90,6 +118,8 @@ exports.uploadFile = async (req, res) => {
                 folderId: folderId || null
             }
         });
+        
+        console.log('File record created in database');
 
         res.redirect('/files/dashboard');
     } catch (error) {

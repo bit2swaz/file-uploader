@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Upload a file to Supabase Storage
- * @param {Buffer} fileBuffer - The file buffer to upload
+ * @param {Buffer|Uint8Array} fileBuffer - The file buffer to upload
  * @param {string} fileName - The name of the file
  * @param {string} mimeType - The MIME type of the file
  * @param {string} userId - The user ID who owns the file
@@ -18,11 +18,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  */
 const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
     try {
+        console.log('Starting Supabase upload...');
+        console.log('Supabase URL:', supabaseUrl);
+        console.log('Bucket:', bucketName);
+        
         // Create a unique path for the file to avoid collisions
         const timestamp = Date.now();
         const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filePath = `${userId}/${timestamp}-${sanitizedFileName}`;
-
+        
+        console.log('Uploading file to path:', filePath);
+        
         // Upload file to Supabase Storage
         const { data, error } = await supabase.storage
             .from(bucketName)
@@ -37,6 +43,8 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
             throw new Error(`Failed to upload file to Supabase: ${error.message}`);
         }
 
+        console.log('Upload successful, getting public URL...');
+        
         // Get the public URL for the file
         const { data: urlData } = supabase.storage
             .from(bucketName)
@@ -46,6 +54,8 @@ const uploadFile = async (fileBuffer, fileName, mimeType, userId) => {
             throw new Error('Failed to get public URL for uploaded file');
         }
 
+        console.log('Public URL:', urlData.publicUrl);
+        
         return {
             path: filePath,
             url: urlData.publicUrl
