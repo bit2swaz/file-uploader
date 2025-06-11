@@ -126,11 +126,4 @@ exports.deleteFile = async (req, res) => {
         console.error('Error deleting file:', error);
         res.status(500).render('error', { error: 'Error deleting file' });
     }
-};
-
-module.exports = {
-    getFiles,
-    uploadFile,
-    downloadFile,
-    deleteFile
 }; 
