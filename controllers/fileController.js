@@ -21,6 +21,30 @@ exports.getFiles = async (req, res) => {
     }
 };
 
+// Get file details
+exports.getFileDetail = async (req, res) => {
+    try {
+        const file = await prisma.file.findFirst({
+            where: {
+                id: req.params.id,
+                userId: req.user.id
+            },
+            include: {
+                folder: true
+            }
+        });
+
+        if (!file) {
+            return res.status(404).render('error', { error: 'File not found' });
+        }
+
+        res.render('fileDetail', { file });
+    } catch (error) {
+        console.error('Error getting file details:', error);
+        res.status(500).render('error', { error: 'Error getting file details' });
+    }
+};
+
 // Upload a new file
 exports.uploadFile = async (req, res) => {
     try {
@@ -90,6 +114,15 @@ exports.downloadFile = async (req, res) => {
             return res.status(404).render('error', { error: 'File not found' });
         }
 
+        // Log download attempt
+        console.log(`User ${req.user.id} is downloading file ${file.id}: ${file.filename}`);
+        
+        // Check if file exists on disk
+        if (!fs.existsSync(file.path)) {
+            console.error(`File not found on disk: ${file.path}`);
+            return res.status(404).render('error', { error: 'File not found on disk' });
+        }
+        
         res.download(file.path, file.filename);
     } catch (error) {
         console.error('Error downloading file:', error);

@@ -6,6 +6,7 @@ const folderController = require('../controllers/folderController');
 
 // File routes
 router.get('/dashboard', isAuthenticated, fileController.getFiles);
+router.get('/detail/:id', isAuthenticated, fileController.getFileDetail);
 router.post('/upload', isAuthenticated, fileController.uploadFile);
 router.get('/download/:id', isAuthenticated, fileController.downloadFile);
 router.post('/delete/:id', isAuthenticated, fileController.deleteFile);

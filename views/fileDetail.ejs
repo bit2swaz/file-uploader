@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            margin-bottom: 2rem;
+        }
+        .file-details-card {
+            margin-bottom: 2rem;
+        }
+        .file-info {
+            margin-bottom: 1.5rem;
+        }
+        .file-info-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-info-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/files/dashboard">File Uploader</a>
+            <div class="navbar-text text-light me-3">
+                Welcome, <%= user.name || user.email %>
+            </div>
+            <a href="/auth/logout" class="btn btn-outline-light">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <% if (locals.error) { %>
+            <div class="alert alert-danger"><%= error %></div>
+        <% } %>
+
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card file-details-card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">File Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="file-info">
+                            <div class="file-info-item d-flex justify-content-between">
+                                <strong>Filename:</strong>
+                                <span><%= file.filename %></span>
+                            </div>
+                            <div class="file-info-item d-flex justify-content-between">
+                                <strong>Size:</strong>
+                                <span><%= (file.size / 1024).toFixed(2) %> KB</span>
+                            </div>
+                            <div class="file-info-item d-flex justify-content-between">
+                                <strong>Type:</strong>
+                                <span><%= file.mimetype %></span>
+                            </div>
+                            <div class="file-info-item d-flex justify-content-between">
+                                <strong>Uploaded:</strong>
+                                <span><%= new Date(file.createdAt).toLocaleString() %></span>
+                            </div>
+                            <% if (file.folder) { %>
+                            <div class="file-info-item d-flex justify-content-between">
+                                <strong>Folder:</strong>
+                                <span><%= file.folder.name %></span>
+                            </div>
+                            <% } %>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/files/download/<%= file.id %>" class="btn btn-primary">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                            <a href="/files/dashboard" class="btn btn-secondary">
+                                Back to Dashboard
+                            </a>
+                            <form action="/files/delete/<%= file.id %>" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this file?')">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
