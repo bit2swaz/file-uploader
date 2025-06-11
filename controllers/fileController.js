@@ -35,10 +35,10 @@ const getFiles = async (req, res) => {
 
 const uploadFile = async (req, res) => {
     try {
-        if (!req.file) {
+        if (!req.files || !req.files.file) {
             return res.status(400).render('dashboard', {
                 error: 'No file uploaded',
-                files: await prisma.file.findMany({ 
+                files: await prisma.file.findMany({
                     where: { userId: req.user.id },
                     include: { folder: true }
                 }),
@@ -49,12 +49,18 @@ const uploadFile = async (req, res) => {
             });
         }
 
-        const file = await prisma.file.create({
+        const file = req.files.file;
+        const uploadPath = path.join(__dirname, '..', 'uploads', file.name);
+
+        // Move the file to uploads directory
+        await file.mv(uploadPath);
+
+        const newFile = await prisma.file.create({
             data: {
-                filename: req.file.originalname,
-                path: req.file.path,
-                size: req.file.size,
-                mimetype: req.file.mimetype,
+                filename: file.name,
+                path: uploadPath,
+                size: file.size,
+                mimetype: file.mimetype,
                 userId: req.user.id,
                 folderId: req.body.folderId || null
             },
