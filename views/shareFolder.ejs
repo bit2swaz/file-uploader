@@ -27,41 +27,39 @@
         </div>
     </nav>
 
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6 mx-auto">
-                <div class="card share-card card-hover-effect">
-                    <div class="card-header">
-                        <h4 class="mb-0">Share Folder</h4>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title">Sharing: <%= folder.name %></h5>
-                        <p class="card-text mb-4">Create a shareable link that provides read-only access to this folder and its contents.</p>
+    <%- include('partials/header', { title: 'Share Folder' }) %>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="card share-card card-hover-effect">
+                <div class="card-header">
+                    <h4 class="mb-0">Share Folder</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Sharing: <%= folder.name %></h5>
+                    <p class="card-text mb-4">Create a shareable link that provides read-only access to this folder and its contents.</p>
+                    
+                    <form action="/share/generate" method="POST" class="fade-in">
+                        <input type="hidden" name="folderId" value="<%= folder.id %>">
                         
-                        <form action="/share/generate" method="POST" class="fade-in">
-                            <input type="hidden" name="folderId" value="<%= folder.id %>">
-                            
-                            <div class="mb-3">
-                                <label for="expiry" class="form-label">Link Expiry</label>
-                                <select class="form-select" id="expiry" name="expiry" required>
-                                    <% expiryOptions.forEach(option => { %>
-                                        <option value="<%= option.value %>"><%= option.label %></option>
-                                    <% }); %>
-                                </select>
-                                <div class="form-text">The link will automatically expire after this time period.</div>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between">
-                                <a href="/files/dashboard" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Generate Share Link</button>
-                            </div>
-                        </form>
-                    </div>
+                        <div class="mb-3">
+                            <label for="expiry" class="form-label">Link Expiry</label>
+                            <select class="form-select" id="expiry" name="expiry" required>
+                                <% expiryOptions.forEach(option => { %>
+                                    <option value="<%= option.value %>"><%= option.label %></option>
+                                <% }); %>
+                            </select>
+                            <div class="form-text">The link will automatically expire after this time period.</div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="/files/dashboard" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Generate Share Link</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
-    </div>
+              </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html> 
+  <%- include('partials/footer') %> 

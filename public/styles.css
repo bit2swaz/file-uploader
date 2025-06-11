@@ -15,6 +15,10 @@
 }
 
 /* Base styles */
+html, body {
+  height: 100%;
+}
+
 body {
   font-family: 'Inter', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-dark);
@@ -31,6 +35,10 @@ body {
 .content-container {
   flex: 1;
   padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 /* Typography */
@@ -63,11 +71,18 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   margin: 0 -0.75rem;
+  width: 100%;
 }
 
-.col, .col-md-4, .col-md-6, .col-md-8, .col-12 {
+.col, .col-md-4, .col-md-6, .col-md-8, .col-12, .col-md-6.mx-auto {
   padding: 0 0.75rem;
   width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (min-width: 768px) {
@@ -80,6 +95,11 @@ a:hover {
   .col-md-8 {
     width: 66.67%;
   }
+  .col-md-6.mx-auto {
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* Navbar */
@@ -87,7 +107,7 @@ a:hover {
   background-color: #0a0a0a;
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   box-shadow: 0 2px 10px var(--shadow-color);
 }
 
@@ -127,6 +147,7 @@ a:hover {
   border: 1px solid var(--border-color);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
 }
 
 .card:hover {
@@ -286,6 +307,28 @@ a:hover {
   margin-left: auto;
 }
 
+/* Auth Forms */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 200px);
+  padding: 2rem 0;
+}
+
+.auth-card {
+  max-width: 450px;
+  width: 100%;
+}
+
+.d-grid {
+  display: grid;
+}
+
+.d-grid .btn {
+  padding: 0.75rem 1.5rem;
+}
+
 /* Alerts */
 .alert {
   position: relative;
@@ -355,6 +398,7 @@ a:hover {
 /* Folder & File specific */
 .folder-section {
   margin-bottom: 2.5rem;
+  width: 100%;
 }
 
 .folder-header {
@@ -407,13 +451,26 @@ a:hover {
   outline: none;
 }
 
+.share-card {
+  width: 100%;
+}
+
+/* Shared folder styling */
+.shared-folder-header {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
 /* Footer */
 footer {
   background-color: #0a0a0a;
   padding: 1.5rem 0;
   text-align: center;
   border-top: 1px solid var(--border-color);
-  margin-top: 2rem;
+  margin-top: auto;
 }
 
 footer a {
@@ -454,7 +511,7 @@ footer a:hover {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
-.content-container {
+.content-container > .container {
   animation: fadeIn 0.5s ease-out;
 }
 

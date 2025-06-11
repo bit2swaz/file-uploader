@@ -1,7 +1,7 @@
 <%- include('partials/header', { title: 'Share Link Generated' }) %>
 
-<div class="row">
-    <div class="col-md-6 mx-auto">
+<div class="auth-container">
+    <div class="auth-card">
         <div class="card share-card card-hover-effect">
             <div class="card-header">
                 <h4 class="mb-0">Share Link Generated</h4>
@@ -29,7 +29,7 @@
                 <p class="card-text mt-4 mb-3">Share this link with others to provide read-only access to this folder:</p>
                 
                 <div class="share-url mb-4">
-                    <input type="text" class="form-control share-url-input" id="shareUrl" value="<%= shareUrl %>" readonly>
+                    <input type="text" class="share-url-input" id="shareUrl" value="<%= shareUrl %>" readonly>
                     <button class="btn btn-primary" onclick="copyShareUrl()">Copy</button>
                 </div>
                 
