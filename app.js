@@ -5,12 +5,19 @@ const passport = require('passport');
 const path = require('path');
 const multer = require('multer');
 const flash = require('connect-flash');
+const fs = require('fs');
 require('dotenv').config();
 
 // Import passport config
 require('./config/passport');
 
 const app = express();
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
 
 // Middleware
 app.use(express.json());
@@ -25,15 +32,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Session configuration
 app.use(session({
-  store: new pgSession({
-    conString: process.env.DATABASE_URL,
-  }),
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24 // 24 hours
-  }
+    store: new pgSession({
+        conString: process.env.DATABASE_URL,
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
 }));
 
 // Flash messages
@@ -45,10 +52,10 @@ app.use(passport.session());
 
 // Global variables middleware
 app.use((req, res, next) => {
-  res.locals.user = req.user;
-  res.locals.error = req.flash('error');
-  res.locals.success = req.flash('success');
-  next();
+    res.locals.user = req.user;
+    res.locals.error = req.flash('error');
+    res.locals.success = req.flash('success');
+    next();
 });
 
 // Multer configuration for file uploads
@@ -68,19 +75,21 @@ app.locals.upload = upload;
 // Routes
 const indexRouter = require('./routes/index');
 const authRouter = require('./routes/auth');
+const fileRouter = require('./routes/files');
 
 app.use('/', indexRouter);
 app.use('/auth', authRouter);
+app.use('/files', fileRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('error', { error: err });
+    console.error(err.stack);
+    res.status(500).render('error', { error: err });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
 
 module.exports = app; 

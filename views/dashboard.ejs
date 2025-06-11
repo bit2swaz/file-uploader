@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - File Uploader</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-brand">File Uploader</div>
+            <div class="nav-user">
+                Welcome, <%= user.name || user.email %>
+                <a href="/auth/logout" class="btn btn-logout">Logout</a>
+            </div>
+        </nav>
+
+        <div class="content">
+            <div class="upload-section">
+                <h2>Upload File</h2>
+                <form action="/files/upload" method="POST" enctype="multipart/form-data" class="upload-form">
+                    <div class="form-group">
+                        <label for="file">Choose File</label>
+                        <input type="file" id="file" name="file" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </form>
+            </div>
+
+            <div class="files-section">
+                <h2>Your Files</h2>
+                <% if (files && files.length > 0) { %>
+                    <div class="files-grid">
+                        <% files.forEach(file => { %>
+                            <div class="file-card">
+                                <div class="file-icon">
+                                    <svg viewBox="0 0 24 24" width="48" height="48">
+                                        <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                                    </svg>
+                                </div>
+                                <div class="file-info">
+                                    <h3><%= file.filename %></h3>
+                                    <p class="file-meta">
+                                        Size: <%= (file.size / 1024).toFixed(2) %> KB<br>
+                                        Uploaded: <%= new Date(file.createdAt).toLocaleString() %>
+                                    </p>
+                                    <div class="file-actions">
+                                        <a href="/files/download/<%= file.id %>" class="btn btn-download">Download</a>
+                                        <form action="/files/delete/<%= file.id %>" method="POST" class="delete-form">
+                                            <button type="submit" class="btn btn-delete">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <p class="no-files">No files uploaded yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
